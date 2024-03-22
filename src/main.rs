@@ -20,7 +20,7 @@ const BALL_SIZE: f32 = 20.;
 const BALL_INIT_SPEED: f32 = 150.;
 const BALL_ACCEL: f32 = 10.;
 
-const WIN_SCORE: i32 = 2;
+const WIN_SCORE: i32 = 5;
 
 #[derive(Clone, Copy)]
 enum Side {
@@ -163,10 +163,7 @@ impl Pong {
     }
 
     fn reset(&mut self) {
-        self.ball = Ball::new(None);
-        self.left_score = 0;
-        self.right_score = 0;
-        self.state = PongState::Playing;
+        *self = Pong::new();
     }
 
     fn update_scores(&mut self) {
