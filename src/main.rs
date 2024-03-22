@@ -319,6 +319,7 @@ fn window_conf() -> window::Conf {
         window_title: "PONG".to_owned(),
         window_width: 800,
         window_height: 600,
+        window_resizable: false,
         ..window::Conf::default()
     }
 }
