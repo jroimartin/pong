@@ -200,9 +200,21 @@ impl Pong {
                 continue;
             };
 
+            let racket_rect_cx = racket_rect.x + racket_rect.w * 0.5;
+
             match racket.side {
-                Side::Left => self.ball.dir.0 = self.ball.dir.0.abs(),
-                Side::Right => self.ball.dir.0 = -self.ball.dir.0.abs(),
+                Side::Left => {
+                    if rect.x < racket_rect_cx {
+                        continue;
+                    }
+                    self.ball.dir.0 = self.ball.dir.0.abs();
+                }
+                Side::Right => {
+                    if rect.x + rect.w > racket_rect_cx {
+                        continue;
+                    }
+                    self.ball.dir.0 = -self.ball.dir.0.abs();
+                }
             }
 
             let rect_cy = rect.y + rect.h * 0.5;
