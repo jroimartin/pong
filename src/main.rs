@@ -9,6 +9,9 @@ use macroquad::text;
 use macroquad::time;
 use macroquad::window;
 
+const WINDOW_WIDTH: i32 = 800;
+const WINDOW_HEIGHT: i32 = 600;
+
 const BACKGROUND_COLOR: color::Color = colors::BLACK;
 const FOREGROUND_COLOR: color::Color = colors::WHITE;
 
@@ -142,10 +145,8 @@ enum PongState {
 }
 
 struct Pong {
-    left_racket: Racket,
-    right_racket: Racket,
-    left_score: i32,
-    right_score: i32,
+    rackets: (Racket, Racket),
+    scores: (i32, i32),
     ball: Ball,
     state: PongState,
 }
@@ -153,11 +154,9 @@ struct Pong {
 impl Pong {
     fn new() -> Self {
         Self {
-            left_racket: Racket::new(Side::Left),
-            right_racket: Racket::new(Side::Right),
+            rackets: (Racket::new(Side::Left), Racket::new(Side::Right)),
             ball: Ball::new(None),
-            left_score: 0,
-            right_score: 0,
+            scores: (0, 0),
             state: PongState::Playing,
         }
     }
@@ -168,8 +167,8 @@ impl Pong {
 
     fn update_scores(&mut self) {
         if self.ball.pos.0 < 0. {
-            self.right_score += 1;
-            self.state = if self.right_score >= WIN_SCORE {
+            self.scores.1 += 1;
+            self.state = if self.scores.1 >= WIN_SCORE {
                 PongState::Winner(Side::Right)
             } else {
                 PongState::NewRound(Side::Left)
@@ -177,8 +176,8 @@ impl Pong {
             return;
         }
         if self.ball.pos.0 + BALL_SIZE > window::screen_width() {
-            self.left_score += 1;
-            self.state = if self.left_score >= WIN_SCORE {
+            self.scores.0 += 1;
+            self.state = if self.scores.0 >= WIN_SCORE {
                 PongState::Winner(Side::Left)
             } else {
                 PongState::NewRound(Side::Right)
@@ -188,7 +187,7 @@ impl Pong {
     }
 
     fn update_collisions(&mut self) {
-        for racket in [&self.left_racket, &self.right_racket] {
+        for racket in [&self.rackets.0, &self.rackets.1] {
             let ball_rect = math::Rect::new(self.ball.pos.0, self.ball.pos.1, BALL_SIZE, BALL_SIZE);
             let racket_rect =
                 math::Rect::new(racket.pos.0, racket.pos.1, RACKET_SIZE.0, RACKET_SIZE.1);
@@ -233,17 +232,17 @@ impl Pong {
             }
             PongState::Playing => {
                 if input::is_key_down(KeyCode::W) {
-                    self.left_racket.slide(-RACKET_SPEED);
+                    self.rackets.0.slide(-RACKET_SPEED);
                 }
                 if input::is_key_down(KeyCode::S) {
-                    self.left_racket.slide(RACKET_SPEED);
+                    self.rackets.0.slide(RACKET_SPEED);
                 }
 
                 if input::is_key_down(KeyCode::Up) {
-                    self.right_racket.slide(-RACKET_SPEED);
+                    self.rackets.1.slide(-RACKET_SPEED);
                 }
                 if input::is_key_down(KeyCode::Down) {
-                    self.right_racket.slide(RACKET_SPEED);
+                    self.rackets.1.slide(RACKET_SPEED);
                 }
                 self.ball.update();
                 self.update_collisions();
@@ -260,7 +259,7 @@ impl Pong {
 
     fn draw_scores(&self) {
         draw_text_center(
-            &format!("{} - {}", self.left_score, self.right_score),
+            &format!("{} - {}", self.scores.0, self.scores.1),
             75.0,
             30.0,
         );
@@ -283,8 +282,8 @@ impl Pong {
         match self.state {
             PongState::Playing | PongState::NewRound(_) => {
                 self.draw_scores();
-                self.left_racket.draw();
-                self.right_racket.draw();
+                self.rackets.0.draw();
+                self.rackets.1.draw();
                 self.ball.draw();
             }
             PongState::Winner(side) => self.draw_winner(side),
@@ -317,9 +316,9 @@ fn draw_text_center(text: &str, font_size: f32, y: f32) {
 fn window_conf() -> window::Conf {
     window::Conf {
         window_title: "PONG".to_owned(),
-        window_width: 800,
-        window_height: 600,
         window_resizable: false,
+        window_width: WINDOW_WIDTH,
+        window_height: WINDOW_HEIGHT,
         ..window::Conf::default()
     }
 }
