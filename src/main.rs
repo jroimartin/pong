@@ -1,16 +1,18 @@
 //! The classic table tennis–themed video game.
 use std::fmt;
 
+use macroquad::camera;
 use macroquad::color::{self, colors};
 use macroquad::input::{self, KeyCode};
 use macroquad::math;
 use macroquad::shapes;
 use macroquad::text;
+use macroquad::texture;
 use macroquad::time;
 use macroquad::window;
 
-const WINDOW_WIDTH: i32 = 800;
-const WINDOW_HEIGHT: i32 = 600;
+const WINDOW_WIDTH: f32 = 800.;
+const WINDOW_HEIGHT: f32 = 600.;
 
 const BACKGROUND_COLOR: color::Color = colors::BLACK;
 const FOREGROUND_COLOR: color::Color = colors::WHITE;
@@ -49,9 +51,9 @@ impl Racket {
     fn new(side: Side) -> Self {
         let pos_x = match side {
             Side::Left => RACKET_MARGIN,
-            Side::Right => window::screen_width() - RACKET_MARGIN - RACKET_SIZE.0,
+            Side::Right => WINDOW_WIDTH - RACKET_MARGIN - RACKET_SIZE.0,
         };
-        let pos_y = window::screen_height() * 0.5 - RACKET_SIZE.1 * 0.5;
+        let pos_y = WINDOW_HEIGHT * 0.5 - RACKET_SIZE.1 * 0.5;
         Self {
             side,
             pos: (pos_x, pos_y),
@@ -62,8 +64,8 @@ impl Racket {
         let pos_y = self.pos.1 + speed * time::get_frame_time();
         self.pos.1 = if pos_y < 0. {
             0.
-        } else if pos_y + RACKET_SIZE.1 > window::screen_height() {
-            window::screen_height() - RACKET_SIZE.1
+        } else if pos_y + RACKET_SIZE.1 > WINDOW_HEIGHT {
+            WINDOW_HEIGHT - RACKET_SIZE.1
         } else {
             pos_y
         };
@@ -88,8 +90,8 @@ struct Ball {
 
 impl Ball {
     fn new(side: Option<Side>) -> Self {
-        let x = window::screen_width() * 0.5 - BALL_SIZE * 0.5;
-        let y = window::screen_height() * 0.5 - BALL_SIZE * 0.5;
+        let x = WINDOW_WIDTH * 0.5 - BALL_SIZE * 0.5;
+        let y = WINDOW_HEIGHT * 0.5 - BALL_SIZE * 0.5;
         let rnddir = || -> f32 { ((((time::get_time() * 1e6) as i32) & 1) * 2 - 1) as f32 };
         let dir_x = if let Some(side) = side {
             match side {
@@ -116,8 +118,8 @@ impl Ball {
         let y = self.pos.1 + self.dir.1 * delta;
         (self.pos.1, self.dir.1) = if y < 0. {
             (0., -self.dir.1)
-        } else if y + BALL_SIZE > window::screen_height() {
-            (window::screen_height() - BALL_SIZE, -self.dir.1)
+        } else if y + BALL_SIZE > WINDOW_HEIGHT {
+            (WINDOW_HEIGHT - BALL_SIZE, -self.dir.1)
         } else {
             (y, self.dir.1)
         };
@@ -175,7 +177,7 @@ impl Pong {
             };
             return;
         }
-        if self.ball.pos.0 + BALL_SIZE > window::screen_width() {
+        if self.ball.pos.0 + BALL_SIZE > WINDOW_WIDTH {
             self.scores.0 += 1;
             self.state = if self.scores.0 >= WIN_SCORE {
                 PongState::Winner(Side::Left)
@@ -266,15 +268,11 @@ impl Pong {
     }
 
     fn draw_winner(&self, side: Side) {
-        draw_text_center(
-            &format!("{side} WON!"),
-            150.0,
-            window::screen_height() * 0.5,
-        );
+        draw_text_center(&format!("{side} WON!"), 150.0, WINDOW_HEIGHT * 0.5);
         draw_text_center(
             &format!("(Press SPACE to play again)"),
             40.,
-            window::screen_height() * 0.5 + 100.,
+            WINDOW_HEIGHT * 0.5 + 100.,
         );
     }
 
@@ -306,7 +304,7 @@ fn draw_text_center(text: &str, font_size: f32, y: f32) {
     let text_sz = text::measure_text(&text, None, font_size as u16, 1.);
     text::draw_text(
         &text,
-        window::screen_width() * 0.5 - text_sz.width * 0.5,
+        WINDOW_WIDTH * 0.5 - text_sz.width * 0.5,
         y - text_sz.height * 0.5 + text_sz.offset_y,
         font_size,
         FOREGROUND_COLOR,
@@ -316,10 +314,9 @@ fn draw_text_center(text: &str, font_size: f32, y: f32) {
 fn window_conf() -> window::Conf {
     window::Conf {
         window_title: "PONG".to_owned(),
-        window_resizable: false,
-        window_width: WINDOW_WIDTH,
-        window_height: WINDOW_HEIGHT,
-        ..window::Conf::default()
+        window_width: WINDOW_WIDTH as i32,
+        window_height: WINDOW_HEIGHT as i32,
+        ..Default::default()
     }
 }
 
@@ -327,7 +324,14 @@ fn window_conf() -> window::Conf {
 async fn main() {
     let mut pong = Pong::new();
 
+    let render_target = texture::render_target(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32);
+    let mut render_camera =
+        camera::Camera2D::from_display_rect(math::Rect::new(0., 0., WINDOW_WIDTH, WINDOW_HEIGHT));
+    render_camera.render_target = Some(render_target.clone());
+
     loop {
+        camera::set_camera(&render_camera);
+
         window::clear_background(BACKGROUND_COLOR);
 
         pong.update();
@@ -338,6 +342,20 @@ async fn main() {
 
         #[cfg(debug_assertions)]
         draw_fps();
+
+        camera::set_default_camera();
+
+        texture::draw_texture_ex(
+            &render_target.texture,
+            0.,
+            0.,
+            colors::WHITE,
+            texture::DrawTextureParams {
+                dest_size: Some(math::vec2(window::screen_width(), window::screen_height())),
+                flip_y: true,
+                ..Default::default()
+            },
+        );
 
         window::next_frame().await;
     }
