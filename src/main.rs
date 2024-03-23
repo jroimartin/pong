@@ -175,16 +175,13 @@ impl Pong {
             } else {
                 PongState::NewRound(Side::Left)
             };
-            return;
-        }
-        if self.ball.pos.0 + BALL_SIZE > WINDOW_WIDTH {
+        } else if self.ball.pos.0 + BALL_SIZE > WINDOW_WIDTH {
             self.scores.0 += 1;
             self.state = if self.scores.0 >= WIN_SCORE {
                 PongState::Winner(Side::Left)
             } else {
                 PongState::NewRound(Side::Right)
             };
-            return;
         }
     }
 
@@ -270,7 +267,7 @@ impl Pong {
     fn draw_winner(&self, side: Side) {
         draw_text_center(&format!("{side} WON!"), 150.0, WINDOW_HEIGHT * 0.5);
         draw_text_center(
-            &format!("(Press SPACE to play again)"),
+            "(Press SPACE to play again)",
             40.,
             WINDOW_HEIGHT * 0.5 + 100.,
         );
@@ -301,9 +298,9 @@ fn draw_fps() {
 }
 
 fn draw_text_center(text: &str, font_size: f32, y: f32) {
-    let text_sz = text::measure_text(&text, None, font_size as u16, 1.);
+    let text_sz = text::measure_text(text, None, font_size as u16, 1.);
     text::draw_text(
-        &text,
+        text,
         WINDOW_WIDTH * 0.5 - text_sz.width * 0.5,
         y - text_sz.height * 0.5 + text_sz.offset_y,
         font_size,
