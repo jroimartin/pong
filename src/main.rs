@@ -1,24 +1,16 @@
 //! The classic table tennis–themed video game.
 use std::fmt;
 
-use macroquad::camera;
-use macroquad::color::{self, colors};
-use macroquad::input::{self, KeyCode};
-use macroquad::math;
-use macroquad::shapes;
-use macroquad::text;
-use macroquad::texture;
-use macroquad::time;
-use macroquad::window;
+use macroquad::prelude::*;
 
 const WINDOW_WIDTH: f32 = 800.;
 const WINDOW_HEIGHT: f32 = 600.;
 
-const BACKGROUND_COLOR: color::Color = colors::BLACK;
-const FOREGROUND_COLOR: color::Color = colors::WHITE;
+const BACKGROUND_COLOR: Color = DARKGRAY;
+const FOREGROUND_COLOR: Color = WHITE;
 
 const RACKET_SIZE: (f32, f32) = (20., 100.);
-const RACKET_MARGIN: f32 = 20.;
+const RACKET_MARGIN: f32 = 40.;
 const RACKET_SPEED: f32 = 500.;
 
 const BALL_SIZE: f32 = 20.;
@@ -61,7 +53,7 @@ impl Racket {
     }
 
     fn slide(&mut self, speed: f32) {
-        let pos_y = self.pos.1 + speed * time::get_frame_time();
+        let pos_y = self.pos.1 + speed * get_frame_time();
         self.pos.1 = if pos_y < 0. {
             0.
         } else if pos_y + RACKET_SIZE.1 > WINDOW_HEIGHT {
@@ -72,7 +64,7 @@ impl Racket {
     }
 
     fn draw(&self) {
-        shapes::draw_rectangle(
+        draw_rectangle(
             self.pos.0,
             self.pos.1,
             RACKET_SIZE.0,
@@ -92,7 +84,7 @@ impl Ball {
     fn new(side: Option<Side>) -> Self {
         let x = WINDOW_WIDTH * 0.5 - BALL_SIZE * 0.5;
         let y = WINDOW_HEIGHT * 0.5 - BALL_SIZE * 0.5;
-        let rnddir = || -> f32 { ((((time::get_time() * 1e6) as i32) & 1) * 2 - 1) as f32 };
+        let rnddir = || -> f32 { ((((get_time() * 1e6) as i32) & 1) * 2 - 1) as f32 };
         let dir_x = if let Some(side) = side {
             match side {
                 Side::Left => -1.,
@@ -109,7 +101,7 @@ impl Ball {
     }
 
     fn update(&mut self) {
-        let ft = time::get_frame_time();
+        let ft = get_frame_time();
 
         let delta = self.speed * ft;
 
@@ -128,7 +120,7 @@ impl Ball {
     }
 
     fn draw(&self) {
-        shapes::draw_rectangle(
+        draw_rectangle(
             self.pos.0,
             self.pos.1,
             BALL_SIZE,
@@ -187,9 +179,8 @@ impl Pong {
 
     fn update_collisions(&mut self) {
         for racket in [&self.rackets.0, &self.rackets.1] {
-            let ball_rect = math::Rect::new(self.ball.pos.0, self.ball.pos.1, BALL_SIZE, BALL_SIZE);
-            let racket_rect =
-                math::Rect::new(racket.pos.0, racket.pos.1, RACKET_SIZE.0, RACKET_SIZE.1);
+            let ball_rect = Rect::new(self.ball.pos.0, self.ball.pos.1, BALL_SIZE, BALL_SIZE);
+            let racket_rect = Rect::new(racket.pos.0, racket.pos.1, RACKET_SIZE.0, RACKET_SIZE.1);
 
             let Some(rect) = racket_rect.intersect(ball_rect) else {
                 continue;
@@ -220,7 +211,7 @@ impl Pong {
     }
 
     fn update(&mut self) {
-        if input::is_key_down(KeyCode::Q) {
+        if is_key_down(KeyCode::Q) {
             self.state = PongState::Exit
         }
 
@@ -230,17 +221,17 @@ impl Pong {
                 self.state = PongState::Playing;
             }
             PongState::Playing => {
-                if input::is_key_down(KeyCode::W) {
+                if is_key_down(KeyCode::W) {
                     self.rackets.0.slide(-RACKET_SPEED);
                 }
-                if input::is_key_down(KeyCode::S) {
+                if is_key_down(KeyCode::S) {
                     self.rackets.0.slide(RACKET_SPEED);
                 }
 
-                if input::is_key_down(KeyCode::Up) {
+                if is_key_down(KeyCode::Up) {
                     self.rackets.1.slide(-RACKET_SPEED);
                 }
-                if input::is_key_down(KeyCode::Down) {
+                if is_key_down(KeyCode::Down) {
                     self.rackets.1.slide(RACKET_SPEED);
                 }
                 self.ball.update();
@@ -248,7 +239,7 @@ impl Pong {
                 self.update_scores();
             }
             PongState::Winner(_) => {
-                if input::is_key_down(KeyCode::Space) {
+                if is_key_down(KeyCode::Space) {
                     self.reset();
                 }
             }
@@ -293,13 +284,13 @@ impl Pong {
 
 #[cfg(debug_assertions)]
 fn draw_fps() {
-    let fps = format!("{:3} FPS", time::get_fps());
-    text::draw_text(&fps, 10., 20., 20., colors::GREEN);
+    let fps = format!("{:3} FPS", get_fps());
+    draw_text(&fps, 10., 20., 20., GREEN);
 }
 
 fn draw_text_center(text: &str, font_size: f32, y: f32) {
-    let text_sz = text::measure_text(text, None, font_size as u16, 1.);
-    text::draw_text(
+    let text_sz = measure_text(text, None, font_size as u16, 1.);
+    draw_text(
         text,
         WINDOW_WIDTH * 0.5 - text_sz.width * 0.5,
         y - text_sz.height * 0.5 + text_sz.offset_y,
@@ -308,8 +299,8 @@ fn draw_text_center(text: &str, font_size: f32, y: f32) {
     );
 }
 
-fn window_conf() -> window::Conf {
-    window::Conf {
+fn window_conf() -> Conf {
+    Conf {
         window_title: "PONG".to_owned(),
         window_width: WINDOW_WIDTH as i32,
         window_height: WINDOW_HEIGHT as i32,
@@ -319,17 +310,26 @@ fn window_conf() -> window::Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let mut pong = Pong::new();
-
-    let render_target = texture::render_target(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32);
+    let render_target = render_target(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32);
     let mut render_camera =
-        camera::Camera2D::from_display_rect(math::Rect::new(0., 0., WINDOW_WIDTH, WINDOW_HEIGHT));
+        Camera2D::from_display_rect(Rect::new(0., 0., WINDOW_WIDTH, WINDOW_HEIGHT));
     render_camera.render_target = Some(render_target.clone());
 
-    loop {
-        camera::set_camera(&render_camera);
+    let material = load_material(
+        ShaderSource::Glsl {
+            vertex: VERTEX_SHADER,
+            fragment: FRAGMENT_SHADER,
+        },
+        Default::default(),
+    )
+    .unwrap();
 
-        window::clear_background(BACKGROUND_COLOR);
+    let mut pong = Pong::new();
+
+    loop {
+        set_camera(&render_camera);
+
+        clear_background(BACKGROUND_COLOR);
 
         pong.update();
         if matches!(pong.state(), PongState::Exit) {
@@ -337,23 +337,90 @@ async fn main() {
         }
         pong.draw();
 
-        #[cfg(debug_assertions)]
-        draw_fps();
+        set_default_camera();
 
-        camera::set_default_camera();
-
-        texture::draw_texture_ex(
+        gl_use_material(&material);
+        draw_texture_ex(
             &render_target.texture,
             0.,
             0.,
-            colors::WHITE,
-            texture::DrawTextureParams {
-                dest_size: Some(math::vec2(window::screen_width(), window::screen_height())),
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(screen_width(), screen_height())),
                 flip_y: true,
                 ..Default::default()
             },
         );
+        gl_use_default_material();
 
-        window::next_frame().await;
+        #[cfg(debug_assertions)]
+        draw_fps();
+
+        next_frame().await;
     }
 }
+
+// Shaders based on https://www.shadertoy.com/view/XtlSD7
+
+const VERTEX_SHADER: &str = r#"
+#version 100
+
+attribute vec3 position;
+attribute vec2 texcoord;
+attribute vec4 color0;
+
+varying lowp vec2 uv;
+varying lowp vec4 color;
+
+uniform mat4 Model;
+uniform mat4 Projection;
+
+void main() {
+    gl_Position = Projection * Model * vec4(position, 1);
+    color = color0 / 255.0;
+    uv = texcoord;
+}
+"#;
+
+const FRAGMENT_SHADER: &str = r#"
+#version 100
+
+precision lowp float;
+
+varying vec2 uv;
+varying vec4 color;
+
+uniform sampler2D Texture;
+uniform vec4 _Time;
+
+vec2 crt_curve_uv(vec2 uv) {
+    uv = uv * 2.0 - 1.0;
+    vec2 offset = abs(uv.yx) / vec2(6.0, 4.0);
+    uv = uv + uv * offset * offset;
+    uv = uv * 0.5 + 0.5;
+    return uv;
+}
+
+void draw_vignette(inout vec3 color, vec2 uv) {
+    float vignette = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
+    vignette = clamp(pow(16.0 * vignette, 0.3), 0.0, 1.0);
+    color *= vignette;
+}
+
+void draw_scanline(inout vec3 color, vec2 uv) {
+    float scanline = clamp(0.95 + 0.05 * cos(3.14 * (uv.y + 0.008 * _Time.x) * 240.0 * 1.0), 0.0, 1.0);
+    float grille = 0.85 + 0.15 * clamp(1.5 * cos(3.14 * uv.x * 640.0 * 1.0), 0.0, 1.0);
+    color *= scanline * grille * 1.2;
+}
+
+void main() {
+    vec3 frag_color = texture2D(Texture, uv).rgb * color.rgb;
+    vec2 crt_uv = crt_curve_uv(uv);
+    if (crt_uv.x < 0.0 || crt_uv.x > 1.0 || crt_uv.y < 0.0 || crt_uv.y > 1.0) {
+        frag_color = vec3(0.0, 0.0, 0.0);
+    }
+    draw_vignette(frag_color, crt_uv);
+    draw_scanline(frag_color, uv);
+    gl_FragColor = vec4(frag_color, 1.0);
+}
+"#;
