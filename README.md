@@ -8,3 +8,7 @@ The classic table tennis–themed video game.
 - **Right player**: <kbd>↑</kbd> <kbd>↓</kbd>
 - **Quit game**: <kbd>Q</kbd>
 - **Restart game**: <kbd>Space</kbd>
+
+## Screenshots
+
+<p align="center"><img alt="screenshot" src="screenshot.png"></p>
