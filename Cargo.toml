@@ -5,4 +5,4 @@ edition = "2021"
 publish = false
 
 [dependencies]
-macroquad = "0.4.5"
+macroquad = {version = "0.4.5", features = ["audio"]}

@@ -1,7 +1,10 @@
 //! The classic table tennis–themed video game.
 use std::fmt;
 
-use macroquad::prelude::*;
+use macroquad::{
+    audio::{load_sound_from_bytes, play_sound_once, Sound},
+    prelude::*,
+};
 
 const WINDOW_WIDTH: f32 = 800.;
 const WINDOW_HEIGHT: f32 = 600.;
@@ -23,6 +26,15 @@ const WIN_SCORE: i32 = 5;
 enum Side {
     Left,
     Right,
+}
+
+impl Side {
+    fn toggle(self) -> Self {
+        match self {
+            Side::Left => Side::Right,
+            Side::Right => Side::Left,
+        }
+    }
 }
 
 impl fmt::Display for Side {
@@ -53,14 +65,7 @@ impl Racket {
     }
 
     fn slide(&mut self, speed: f32) {
-        let pos_y = self.pos.1 + speed * get_frame_time();
-        self.pos.1 = if pos_y < 0. {
-            0.
-        } else if pos_y + RACKET_SIZE.1 > WINDOW_HEIGHT {
-            WINDOW_HEIGHT - RACKET_SIZE.1
-        } else {
-            pos_y
-        };
+        self.pos.1 += speed * get_frame_time();
     }
 
     fn draw(&self) {
@@ -100,22 +105,11 @@ impl Ball {
         }
     }
 
-    fn update(&mut self) {
+    fn fly(&mut self) {
         let ft = get_frame_time();
-
         let delta = self.speed * ft;
-
         self.pos.0 += self.dir.0 * delta;
-
-        let y = self.pos.1 + self.dir.1 * delta;
-        (self.pos.1, self.dir.1) = if y < 0. {
-            (0., -self.dir.1)
-        } else if y + BALL_SIZE > WINDOW_HEIGHT {
-            (WINDOW_HEIGHT - BALL_SIZE, -self.dir.1)
-        } else {
-            (y, self.dir.1)
-        };
-
+        self.pos.1 += self.dir.1 * delta;
         self.speed += ft * BALL_ACCEL;
     }
 
@@ -134,6 +128,9 @@ impl Ball {
 enum PongState {
     NewRound(Side),
     Playing,
+    WallBounce,
+    RacketBounce,
+    Point(Side),
     Winner(Side),
     Exit,
 }
@@ -143,65 +140,117 @@ struct Pong {
     scores: (i32, i32),
     ball: Ball,
     state: PongState,
+    point_sound: Sound,
+    racket_sound: Sound,
+    wall_sound: Sound,
 }
 
 impl Pong {
-    fn new() -> Self {
+    async fn new() -> Self {
         Self {
             rackets: (Racket::new(Side::Left), Racket::new(Side::Right)),
             ball: Ball::new(None),
             scores: (0, 0),
             state: PongState::Playing,
+            point_sound: load_sound_from_bytes(include_bytes!("../sounds/point.ogg"))
+                .await
+                .expect("load point sound file"),
+            racket_sound: load_sound_from_bytes(include_bytes!("../sounds/racket.ogg"))
+                .await
+                .expect("load racket sound file"),
+            wall_sound: load_sound_from_bytes(include_bytes!("../sounds/wall.ogg"))
+                .await
+                .expect("load wall sound file"),
         }
     }
 
     fn reset(&mut self) {
-        *self = Pong::new();
+        self.rackets = (Racket::new(Side::Left), Racket::new(Side::Right));
+        self.ball = Ball::new(None);
+        self.scores = (0, 0);
+        self.state = PongState::Playing;
     }
 
-    fn update_scores(&mut self) {
-        if self.ball.pos.0 < 0. {
-            self.scores.1 += 1;
-            self.state = if self.scores.1 >= WIN_SCORE {
-                PongState::Winner(Side::Right)
-            } else {
-                PongState::NewRound(Side::Left)
-            };
-        } else if self.ball.pos.0 + BALL_SIZE > WINDOW_WIDTH {
-            self.scores.0 += 1;
-            self.state = if self.scores.0 >= WIN_SCORE {
-                PongState::Winner(Side::Left)
-            } else {
-                PongState::NewRound(Side::Right)
-            };
+    fn update_racket_collisions(&mut self) {
+        for racket in [&mut self.rackets.0, &mut self.rackets.1] {
+            racket.pos.1 = racket.pos.1.clamp(0., WINDOW_HEIGHT - RACKET_SIZE.1);
         }
     }
 
-    fn update_collisions(&mut self) {
+    fn update_ball_collisions(&mut self) {
         const DX: f32 = 0.1;
+
+        if self.ball.pos.0 < 0. {
+            self.state = PongState::Point(Side::Right);
+            return;
+        }
+
+        if self.ball.pos.0 + BALL_SIZE > WINDOW_WIDTH {
+            self.state = PongState::Point(Side::Left);
+            return;
+        }
+
+        if self.ball.pos.1 < 0. {
+            self.ball.pos.1 = 0.;
+            self.ball.dir.1 = self.ball.dir.1.abs();
+            self.state = PongState::WallBounce;
+            return;
+        }
+
+        if self.ball.pos.1 + BALL_SIZE > WINDOW_HEIGHT {
+            self.ball.pos.1 = WINDOW_HEIGHT - BALL_SIZE;
+            self.ball.dir.1 = -self.ball.dir.1.abs();
+            self.state = PongState::WallBounce;
+            return;
+        }
 
         let ball_rect = Rect::new(self.ball.pos.0, self.ball.pos.1, BALL_SIZE, BALL_SIZE);
         for racket in [&self.rackets.0, &self.rackets.1] {
             let racket_rect = match racket.side {
-                Side::Left => Rect::new(
-                    racket.pos.0 + RACKET_SIZE.0 - DX,
-                    racket.pos.1,
-                    DX * 2.,
-                    RACKET_SIZE.1,
-                ),
-                Side::Right => Rect::new(racket.pos.0 - DX, racket.pos.1, DX * 2., RACKET_SIZE.1),
+                Side::Left => {
+                    if self.ball.dir.0 > 0. {
+                        continue;
+                    }
+                    Rect::new(
+                        racket.pos.0 + RACKET_SIZE.0 - DX,
+                        racket.pos.1,
+                        DX * 2.,
+                        RACKET_SIZE.1,
+                    )
+                }
+                Side::Right => {
+                    if self.ball.dir.0 < 0. {
+                        continue;
+                    }
+                    Rect::new(racket.pos.0 - DX, racket.pos.1, DX * 2., RACKET_SIZE.1)
+                }
             };
 
             let Some(rect) = racket_rect.intersect(ball_rect) else {
                 continue;
             };
 
-            match racket.side {
-                Side::Left => self.ball.dir.0 = self.ball.dir.0.abs(),
-                Side::Right => self.ball.dir.0 = -self.ball.dir.0.abs(),
-            }
+            self.ball.dir.0 = match racket.side {
+                Side::Left => self.ball.dir.0.abs(),
+                Side::Right => -self.ball.dir.0.abs(),
+            };
             self.ball.dir.1 = (rect.center().y - racket_rect.center().y) / (racket_rect.h * 0.5);
+            self.state = PongState::RacketBounce;
         }
+    }
+
+    fn update_score(&mut self, point_side: Side) {
+        let score = match point_side {
+            Side::Left => &mut self.scores.0,
+            Side::Right => &mut self.scores.1,
+        };
+
+        *score += 1;
+        self.state = if *score >= WIN_SCORE {
+            PongState::Winner(point_side)
+        } else {
+            PongState::NewRound(point_side.toggle())
+        };
     }
 
     fn update(&mut self) {
@@ -228,9 +277,15 @@ impl Pong {
                 if is_key_down(KeyCode::Down) {
                     self.rackets.1.slide(RACKET_SPEED);
                 }
-                self.ball.update();
-                self.update_collisions();
-                self.update_scores();
+                self.update_racket_collisions();
+                self.ball.fly();
+                self.update_ball_collisions();
+            }
+            PongState::WallBounce | PongState::RacketBounce => {
+                self.state = PongState::Playing;
+            }
+            PongState::Point(side) => {
+                self.update_score(side);
             }
             PongState::Winner(_) => {
                 if is_key_down(KeyCode::Space) {
@@ -260,14 +315,22 @@ impl Pong {
 
     fn draw(&self) {
         match self.state {
-            PongState::Playing | PongState::NewRound(_) => {
+            PongState::Winner(side) => self.draw_winner(side),
+            _ => {
                 self.draw_scores();
                 self.rackets.0.draw();
                 self.rackets.1.draw();
                 self.ball.draw();
             }
-            PongState::Winner(side) => self.draw_winner(side),
-            PongState::Exit => {}
+        }
+    }
+
+    fn play_sounds(&self) {
+        match self.state {
+            PongState::WallBounce => play_sound_once(&self.wall_sound),
+            PongState::RacketBounce => play_sound_once(&self.racket_sound),
+            PongState::Point(_) => play_sound_once(&self.point_sound),
+            _ => {}
         }
     }
 
@@ -318,7 +381,7 @@ async fn main() {
     )
     .unwrap();
 
-    let mut pong = Pong::new();
+    let mut pong = Pong::new().await;
 
     loop {
         set_camera(&render_camera);
@@ -330,6 +393,7 @@ async fn main() {
             break;
         }
         pong.draw();
+        pong.play_sounds();
 
         set_default_camera();
 
@@ -354,8 +418,6 @@ async fn main() {
     }
 }
 
-// Shaders based on https://www.shadertoy.com/view/XtlSD7
-
 const VERTEX_SHADER: &str = r#"
 #version 100
 
@@ -377,6 +439,8 @@ void main() {
 "#;
 
 const FRAGMENT_SHADER: &str = r#"
+// This shader is based on https://www.shadertoy.com/view/XtlSD7
+
 #version 100
 
 precision lowp float;
