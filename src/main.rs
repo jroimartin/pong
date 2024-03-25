@@ -178,35 +178,29 @@ impl Pong {
     }
 
     fn update_collisions(&mut self) {
+        const DX: f32 = 0.1;
+
+        let ball_rect = Rect::new(self.ball.pos.0, self.ball.pos.1, BALL_SIZE, BALL_SIZE);
         for racket in [&self.rackets.0, &self.rackets.1] {
-            let ball_rect = Rect::new(self.ball.pos.0, self.ball.pos.1, BALL_SIZE, BALL_SIZE);
-            let racket_rect = Rect::new(racket.pos.0, racket.pos.1, RACKET_SIZE.0, RACKET_SIZE.1);
+            let racket_rect = match racket.side {
+                Side::Left => Rect::new(
+                    racket.pos.0 + RACKET_SIZE.0 - DX,
+                    racket.pos.1,
+                    DX * 2.,
+                    RACKET_SIZE.1,
+                ),
+                Side::Right => Rect::new(racket.pos.0 - DX, racket.pos.1, DX * 2., RACKET_SIZE.1),
+            };
 
             let Some(rect) = racket_rect.intersect(ball_rect) else {
                 continue;
             };
 
-            let racket_rect_cx = racket_rect.x + racket_rect.w * 0.5;
-
             match racket.side {
-                Side::Left => {
-                    if rect.x < racket_rect_cx {
-                        continue;
-                    }
-                    self.ball.dir.0 = self.ball.dir.0.abs();
-                }
-                Side::Right => {
-                    if rect.x + rect.w > racket_rect_cx {
-                        continue;
-                    }
-                    self.ball.dir.0 = -self.ball.dir.0.abs();
-                }
+                Side::Left => self.ball.dir.0 = self.ball.dir.0.abs(),
+                Side::Right => self.ball.dir.0 = -self.ball.dir.0.abs(),
             }
-
-            let rect_cy = rect.y + rect.h * 0.5;
-            let racket_rect_cy = racket_rect.y + racket_rect.h * 0.5;
-            let ball_dir = (rect_cy - racket_rect_cy) / (racket_rect.h * 0.5);
-            self.ball.dir.1 = ball_dir;
+            self.ball.dir.1 = (rect.center().y - racket_rect.center().y) / (racket_rect.h * 0.5);
         }
     }
 
