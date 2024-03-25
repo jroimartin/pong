@@ -11,4 +11,4 @@ The classic table tennis–themed video game.
 
 ## Screenshots
 
-<p align="center"><img alt="screenshot" src="screenshot.png"></p>
+<p align="center"><img alt="screenshot" src="/images/screenshot.png"></p>
