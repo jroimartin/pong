@@ -22,7 +22,7 @@ const BALL_ACCEL: f32 = 10.;
 
 const WIN_SCORE: i32 = 5;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum Side {
     Left,
     Right,
@@ -133,6 +133,13 @@ enum PongState {
     Point(Side),
     Winner(Side),
     Exit,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum Input {
+    Up(Side),
+    Down(Side),
+    Quit,
 }
 
 struct Pong {
@@ -254,7 +261,9 @@ impl Pong {
     }
 
     fn update(&mut self) {
-        if is_key_down(KeyCode::Q) {
+        let inputs = self.read_inputs();
+
+        if inputs.contains(&Input::Quit) {
             self.state = PongState::Exit
         }
 
@@ -264,17 +273,16 @@ impl Pong {
                 self.state = PongState::Playing;
             }
             PongState::Playing => {
-                if is_key_down(KeyCode::W) {
+                if inputs.contains(&Input::Up(Side::Left)) {
                     self.rackets.0.slide(-RACKET_SPEED);
                 }
-                if is_key_down(KeyCode::S) {
+                if inputs.contains(&Input::Down(Side::Left)) {
                     self.rackets.0.slide(RACKET_SPEED);
                 }
-
-                if is_key_down(KeyCode::Up) {
+                if inputs.contains(&Input::Up(Side::Right)) {
                     self.rackets.1.slide(-RACKET_SPEED);
                 }
-                if is_key_down(KeyCode::Down) {
+                if inputs.contains(&Input::Down(Side::Right)) {
                     self.rackets.1.slide(RACKET_SPEED);
                 }
                 self.update_racket_collisions();
@@ -288,12 +296,50 @@ impl Pong {
                 self.update_score(side);
             }
             PongState::Winner(_) => {
-                if is_key_down(KeyCode::Space) {
+                if !inputs.is_empty() {
                     self.reset();
                 }
             }
             PongState::Exit => {}
         }
+    }
+
+    fn read_inputs(&mut self) -> Vec<Input> {
+        let mut inputs = Vec::new();
+
+        #[cfg(not(target_family = "wasm"))]
+        if is_key_down(KeyCode::Q) {
+            inputs.push(Input::Quit);
+        }
+
+        if is_key_down(KeyCode::W) {
+            inputs.push(Input::Up(Side::Left));
+        }
+        if is_key_down(KeyCode::S) {
+            inputs.push(Input::Down(Side::Left));
+        }
+        if is_key_down(KeyCode::Up) {
+            inputs.push(Input::Up(Side::Right));
+        }
+        if is_key_down(KeyCode::Down) {
+            inputs.push(Input::Down(Side::Right));
+        }
+
+        let scale_y = screen_height() / WINDOW_HEIGHT;
+        for touch in touches() {
+            let (side, racket_y) = if touch.position.x < screen_width() * 0.5 {
+                (Side::Left, self.rackets.0.pos.1)
+            } else {
+                (Side::Right, self.rackets.1.pos.1)
+            };
+            if touch.position.y < (racket_y + RACKET_SIZE.1 * 0.25) * scale_y {
+                inputs.push(Input::Up(side));
+            } else if touch.position.y > (racket_y + RACKET_SIZE.1 * 0.75) * scale_y {
+                inputs.push(Input::Down(side));
+            }
+        }
+
+        inputs
     }
 
     fn draw_scores(&self) {
@@ -307,7 +353,7 @@ impl Pong {
     fn draw_winner(&self, side: Side) {
         draw_text_center(&format!("{side} WON!"), 150.0, WINDOW_HEIGHT * 0.5);
         draw_text_center(
-            "(Press SPACE to play again)",
+            "(Use any control to play again)",
             40.,
             WINDOW_HEIGHT * 0.5 + 100.,
         );
