@@ -8,6 +8,13 @@ The classic table tennis–themed video game.
 - **Right player**: <kbd>↑</kbd> <kbd>↓</kbd>
 - **Quit game**: <kbd>Q</kbd>
 
+## Web version
+
+You can play online at [jroimartin.github.io/pong/].
+
 ## Screenshots
 
 <p align="center"><img alt="screenshot" src="/images/screenshot.png"></p>
+
+
+[jroimartin.github.io/pong/]: https://jroimartin.github.io/pong/
