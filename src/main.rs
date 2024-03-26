@@ -159,13 +159,13 @@ impl Pong {
             ball: Ball::new(None),
             scores: (0, 0),
             state: PongState::Playing,
-            point_sound: load_sound_from_bytes(include_bytes!("../sounds/point.ogg"))
+            point_sound: load_sound_from_bytes(include_bytes!("../sounds/point.wav"))
                 .await
                 .expect("load point sound file"),
-            racket_sound: load_sound_from_bytes(include_bytes!("../sounds/racket.ogg"))
+            racket_sound: load_sound_from_bytes(include_bytes!("../sounds/racket.wav"))
                 .await
                 .expect("load racket sound file"),
-            wall_sound: load_sound_from_bytes(include_bytes!("../sounds/wall.ogg"))
+            wall_sound: load_sound_from_bytes(include_bytes!("../sounds/wall.wav"))
                 .await
                 .expect("load wall sound file"),
         }
