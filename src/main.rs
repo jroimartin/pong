@@ -21,6 +21,7 @@ const BALL_INIT_SPEED: f32 = 150.;
 const BALL_ACCEL: f32 = 10.;
 
 const WIN_SCORE: i32 = 5;
+const WIN_SCREEN_SECS: f64 = 1.;
 
 #[derive(Clone, Copy, PartialEq)]
 enum Side {
@@ -131,7 +132,7 @@ enum PongState {
     WallBounce,
     RacketBounce,
     Point(Side),
-    Winner(Side),
+    Winner(Side, f64),
     Exit,
 }
 
@@ -254,7 +255,7 @@ impl Pong {
 
         *score += 1;
         self.state = if *score >= WIN_SCORE {
-            PongState::Winner(point_side)
+            PongState::Winner(point_side, get_time())
         } else {
             PongState::NewRound(point_side.toggle())
         };
@@ -295,8 +296,8 @@ impl Pong {
             PongState::Point(side) => {
                 self.update_score(side);
             }
-            PongState::Winner(_) => {
-                if !inputs.is_empty() {
+            PongState::Winner(_, at) => {
+                if get_time() - at > WIN_SCREEN_SECS && !inputs.is_empty() {
                     self.reset();
                 }
             }
@@ -361,7 +362,7 @@ impl Pong {
 
     fn draw(&self) {
         match self.state {
-            PongState::Winner(side) => self.draw_winner(side),
+            PongState::Winner(side, _) => self.draw_winner(side),
             _ => {
                 self.draw_scores();
                 self.rackets.0.draw();
