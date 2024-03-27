@@ -141,6 +141,7 @@ enum Input {
     Up(Side),
     Down(Side),
     Quit,
+    Unknown,
 }
 
 struct Pong {
@@ -308,22 +309,18 @@ impl Pong {
     fn read_inputs(&mut self) -> Vec<Input> {
         let mut inputs = Vec::new();
 
-        #[cfg(not(target_family = "wasm"))]
-        if is_key_down(KeyCode::Q) {
-            inputs.push(Input::Quit);
-        }
+        for key in get_keys_down() {
+            match key {
+                KeyCode::W => inputs.push(Input::Up(Side::Left)),
+                KeyCode::S => inputs.push(Input::Down(Side::Left)),
+                KeyCode::Up => inputs.push(Input::Up(Side::Right)),
+                KeyCode::Down => inputs.push(Input::Down(Side::Right)),
 
-        if is_key_down(KeyCode::W) {
-            inputs.push(Input::Up(Side::Left));
-        }
-        if is_key_down(KeyCode::S) {
-            inputs.push(Input::Down(Side::Left));
-        }
-        if is_key_down(KeyCode::Up) {
-            inputs.push(Input::Up(Side::Right));
-        }
-        if is_key_down(KeyCode::Down) {
-            inputs.push(Input::Down(Side::Right));
+                #[cfg(not(target_family = "wasm"))]
+                KeyCode::Q => inputs.push(Input::Quit),
+
+                _ => inputs.push(Input::Unknown),
+            }
         }
 
         let scale_y = screen_height() / WINDOW_HEIGHT;
@@ -354,7 +351,7 @@ impl Pong {
     fn draw_winner(&self, side: Side) {
         draw_text_center(&format!("{side} WON!"), 150.0, WINDOW_HEIGHT * 0.5);
         draw_text_center(
-            "(Use any control to play again)",
+            "(Press any key to play again)",
             40.,
             WINDOW_HEIGHT * 0.5 + 100.,
         );
