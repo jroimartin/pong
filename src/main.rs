@@ -23,6 +23,10 @@ const BALL_ACCEL: f32 = 10.;
 const WIN_SCORE: i32 = 5;
 const WIN_SCREEN_SECS: f64 = 1.;
 
+const WALL_WAV_BYTES: &[u8] = include_bytes!("../sounds/wall.wav");
+const RACKET_WAV_BYTES: &[u8] = include_bytes!("../sounds/racket.wav");
+const POINT_WAV_BYTES: &[u8] = include_bytes!("../sounds/point.wav");
+
 #[derive(Clone, Copy, PartialEq)]
 enum Side {
     Left,
@@ -161,13 +165,13 @@ impl Pong {
             ball: Ball::new(None),
             scores: (0, 0),
             state: PongState::Playing,
-            point_sound: load_sound_from_bytes(include_bytes!("../sounds/point.wav"))
+            point_sound: load_sound_from_bytes(POINT_WAV_BYTES)
                 .await
                 .expect("load point sound file"),
-            racket_sound: load_sound_from_bytes(include_bytes!("../sounds/racket.wav"))
+            racket_sound: load_sound_from_bytes(RACKET_WAV_BYTES)
                 .await
                 .expect("load racket sound file"),
-            wall_sound: load_sound_from_bytes(include_bytes!("../sounds/wall.wav"))
+            wall_sound: load_sound_from_bytes(WALL_WAV_BYTES)
                 .await
                 .expect("load wall sound file"),
         }
