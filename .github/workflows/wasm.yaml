@@ -16,13 +16,13 @@ jobs:
       - name: Build WASM binary
         run: cargo build --target wasm32-unknown-unknown --release
       - name: Build site
-        run: cp target/wasm32-unknown-unknown/release/pong.wasm wasm
+        run: cp target/wasm32-unknown-unknown/release/pong.wasm assets
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./wasm
+          path: ./assets
   deploy:
     needs: build
     permissions:
