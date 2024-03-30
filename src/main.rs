@@ -23,9 +23,9 @@ const BALL_ACCEL: f32 = 10.;
 const WIN_SCORE: i32 = 5;
 const WIN_SCREEN_SECS: f64 = 1.;
 
-const WALL_WAV_BYTES: &[u8] = include_bytes!("../sounds/wall.wav");
-const RACKET_WAV_BYTES: &[u8] = include_bytes!("../sounds/racket.wav");
-const POINT_WAV_BYTES: &[u8] = include_bytes!("../sounds/point.wav");
+const WALL_WAV_BYTES: &[u8] = include_bytes!("../assets/sounds/wall.wav");
+const RACKET_WAV_BYTES: &[u8] = include_bytes!("../assets/sounds/racket.wav");
+const POINT_WAV_BYTES: &[u8] = include_bytes!("../assets/sounds/point.wav");
 
 #[derive(Clone, Copy, PartialEq)]
 enum Side {
