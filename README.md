@@ -14,7 +14,7 @@ You can play online at [jroimartin.github.io/pong/].
 
 ## Screenshots
 
-<p align="center"><img alt="screenshot" src="/images/screenshot.png"></p>
+<p align="center"><img alt="screenshot" src="/assets/images/screenshot.png"></p>
 
 
 [jroimartin.github.io/pong/]: https://jroimartin.github.io/pong/
